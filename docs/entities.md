@@ -1,0 +1,15 @@
+# Entidades (MVP)
+
+
+organizations(id, name)
+projects(id, org_id, code, name, start_date, end_date, status)
+members(id, org_id, user_id, roles[])
+cost_codes(id, org_id, code, name)
+budgets(id, project_id, baseline_total, current_total, currency)
+budget_items(id, budget_id, cost_code_id?, name, qty, unit_cost, baseline_amount, current_amount)
+schedule_tasks(id, project_id, name, start, finish, duration, predecessors[], progress, critical)
+rfis(id, project_id, title, question, status, due_date, assignee_id)
+submittals(id, project_id, spec_ref, status, due_date)
+change_orders(id, project_id, title, impact_days, impact_cost, status, affected_task_ids[])
+timesheets(id, project_id, user_id, date, hours, cost_rate)
+evm_snapshots(id, project_id, date, EV, PV, AC, SPI, CPI)

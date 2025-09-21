@@ -1,0 +1,10 @@
+﻿node_modules
+.pnpm-store
+.turbo
+.next
+out
+dist
+build
+coverage
+.env
+prisma/generated

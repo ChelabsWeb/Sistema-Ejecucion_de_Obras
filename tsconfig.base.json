@@ -1,0 +1,30 @@
+﻿{
+  "compilerOptions": {
+    "target": "es2021",
+    "lib": ["dom", "dom.iterable", "es2021"],
+    "module": "esnext",
+    "moduleResolution": "node",
+    "strict": true,
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "skipLibCheck": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "noEmit": true,
+    "baseUrl": ".",
+    "paths": {
+      "@sistema/ui": ["packages/ui/src/index.ts"],
+      "@sistema/ui/*": ["packages/ui/src/*"],
+      "@sistema/core": ["packages/core/src/index.ts"],
+      "@sistema/core/*": ["packages/core/src/*"],
+      "@sistema/db": ["packages/db/src/index.ts"],
+      "@sistema/db/*": ["packages/db/src/*"]
+    }
+  },
+  "exclude": [
+    "node_modules",
+    "dist",
+    ".turbo",
+    "build"
+  ]
+}
