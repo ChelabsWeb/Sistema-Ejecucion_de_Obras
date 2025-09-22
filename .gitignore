@@ -8,3 +8,4 @@ build
 coverage
 .env
 prisma/generated
+*.env

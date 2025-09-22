@@ -1,24 +1,25 @@
 {
-  "name": "sistema-ejecucion-obras",
-  "version": "0.0.1",
-  "private": true,
-  "packageManager": "pnpm@9.0.0",
-  "scripts": {
-    "dev": "turbo run dev --parallel",
-    "build": "turbo run build",
-    "test": "turbo run test",
-    "lint": "turbo run lint"
-  },
-  "devDependencies": {
-    "@typescript-eslint/eslint-plugin": "^7.13.1",
-    "@typescript-eslint/parser": "^7.13.1",
-    "eslint": "^9.6.0",
-    "eslint-config-prettier": "^9.1.0",
-    "prettier": "^3.3.2",
-    "tsup": "^8.1.0",
-    "turbo": "^2.0.3",
-    "tsx": "^4.10.3",
-    "typescript": "^5.4.5",
-    "vitest": "^1.6.0"
-  }
+    "name":  "sistema-ejecucion-obras",
+    "version":  "0.0.1",
+    "private":  true,
+    "packageManager":  "pnpm@9.0.0",
+    "scripts":  {
+                    "dev":  "turbo run dev --parallel",
+                    "build":  "turbo run build",
+                    "test":  "turbo run test",
+                    "lint":  "turbo run lint"
+                },
+    "devDependencies":  {
+                            "@typescript-eslint/eslint-plugin":  "^7.13.1",
+                            "@typescript-eslint/parser":  "^7.13.1",
+                            "eslint":  "^9.6.0",
+                            "eslint-config-prettier":  "^9.1.0",
+                            "prettier":  "^3.3.2",
+                            "tsup":  "^8.1.0",
+                            "turbo":  "^2.0.3",
+                            "tsx":  "^4.10.3",
+                            "typescript":  "^5.4.5",
+                            "vitest":  "^1.6.0",
+                            "@supabase/supabase-js":  "^2.46.0"
+                        }
 }

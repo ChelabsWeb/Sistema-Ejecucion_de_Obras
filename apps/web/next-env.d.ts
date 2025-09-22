@@ -1,1 +1,5 @@
-﻿/// <reference types='next' />\n/// <reference types='next/image-types/global' />\n\ndeclare module '*.svg' {\n  const content: React.FunctionComponent<React.SVGProps<SVGSVGElement>>;\n  export default content;\n}\n\n
+/// <reference types="next" />
+/// <reference types="next/image-types/global" />
+
+// NOTE: This file should not be edited
+// see https://nextjs.org/docs/basic-features/typescript for more information.

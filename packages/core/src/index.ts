@@ -1,5 +1,7 @@
-﻿export * from "./auth";
+export * from "./auth";
 export * from "./schedule";
+export * from "./schedule-types";
+
 
 export function formatGreeting(target: string) {
   const timestamp = new Date().toLocaleTimeString("es-ES", {

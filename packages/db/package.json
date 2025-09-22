@@ -1,26 +1,27 @@
 {
-  "name": "@sistema/db",
-  "version": "0.0.1",
-  "private": false,
-  "main": "dist/index.cjs",
-  "module": "dist/index.mjs",
-  "types": "dist/index.d.ts",
-  "scripts": {
-    "build": "tsup src/index.ts --dts --format cjs,esm",
-    "dev": "tsup src/index.ts --watch --format cjs,esm",
-    "lint": "eslint --ext .ts src",
-    "prisma:generate": "prisma generate",
-    "prisma:push": "prisma db push",
-    "test": "echo \"No tests yet\""
-  },
-  "dependencies": {
-    "@prisma/client": "^5.16.1"
-  },
-  "devDependencies": {
-    "@typescript-eslint/eslint-plugin": "^7.13.1",
-    "@typescript-eslint/parser": "^7.13.1",
-    "eslint": "^9.6.0",
-    "prisma": "^5.16.1",
-    "typescript": "^5.4.5"
-  }
+    "name":  "@sistema/db",
+    "version":  "0.0.1",
+    "private":  false,
+    "main":  "dist/index.cjs",
+    "module":  "dist/index.mjs",
+    "types":  "dist/index.d.ts",
+    "scripts":  {
+                    "build":  "tsup src/index.ts --dts --format cjs,esm",
+                    "dev":  "tsup src/index.ts --watch --format cjs,esm",
+                    "lint":  "eslint --ext .ts src",
+                    "prisma:generate":  "prisma generate",
+                    "prisma:push":  "prisma db push",
+                    "test":  "echo \"No tests yet\""
+                },
+    "dependencies":  {
+                         "@prisma/client":  "^5.16.1",
+                         "@supabase/supabase-js":  "^2.46.0"
+                     },
+    "devDependencies":  {
+                            "@typescript-eslint/eslint-plugin":  "^7.13.1",
+                            "@typescript-eslint/parser":  "^7.13.1",
+                            "eslint":  "^9.6.0",
+                            "prisma":  "^5.16.1",
+                            "typescript":  "^5.4.5"
+                        }
 }

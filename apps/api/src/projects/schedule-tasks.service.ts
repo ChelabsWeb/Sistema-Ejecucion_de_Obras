@@ -8,20 +8,15 @@ import {
   CriticalPathError,
   computeCriticalPath,
   type CriticalPathResult,
+  type ScheduleTaskEntity,
   type ScheduleTaskInput
 } from "@sistema/core";
+import {
+  createSupabaseScheduleTasksRepository,
+  type ScheduleTasksRepository
+} from "@sistema/db";
 import { CreateScheduleTaskDto } from "./dto/create-schedule-task.dto";
 import { UpdateScheduleTaskDto } from "./dto/update-schedule-task.dto";
-
-export interface ScheduleTaskEntity {
-  id: string;
-  projectId: string;
-  name: string;
-  startDate: string;
-  durationDays: number;
-  progress: number;
-  predecessorIds: string[];
-}
 
 export interface ScheduleTasksResponse {
   tasks: ScheduleTaskEntity[];
@@ -69,25 +64,30 @@ const DEFAULT_TASKS: ScheduleTaskEntity[] = [
 
 @Injectable()
 export class ScheduleTasksService {
-  private readonly store = new Map<string, ScheduleTaskEntity[]>();
+  private readonly repository: ScheduleTasksRepository;
+  private readonly supabaseEnabled: boolean;
 
   constructor() {
-    this.bootstrapDefaults();
+    this.supabaseEnabled = Boolean(
+      process.env.SUPABASE_URL &&
+        (process.env.SUPABASE_SERVICE_ROLE_KEY ?? process.env.SUPABASE_ANON_KEY)
+    );
+
+    this.repository = this.supabaseEnabled
+      ? createSupabaseScheduleTasksRepository()
+      : new InMemoryScheduleTasksRepository(DEFAULT_TASKS);
   }
 
-  list(projectId: string): ScheduleTasksResponse {
-    const tasks = this.getTasks(projectId);
-    const metrics = this.computeMetrics(projectId);
-    return {
-      tasks,
-      metrics
-    };
+  async list(projectId: string): Promise<ScheduleTasksResponse> {
+    const tasks = await this.repository.list(projectId);
+    const metrics = this.computeMetrics(tasks);
+    return { tasks, metrics };
   }
 
-  create(projectId: string, payload: CreateScheduleTaskDto): ScheduleTasksResponse {
-    const tasks = this.ensureProjectStore(projectId);
+  async create(projectId: string, payload: CreateScheduleTaskDto): Promise<ScheduleTasksResponse> {
+    const existingTasks = await this.repository.list(projectId);
     const predecessorIds = payload.predecessorIds ?? [];
-    this.assertPredecessorsExist(projectId, predecessorIds);
+    this.assertPredecessorsExist(existingTasks, predecessorIds);
 
     const newTask: ScheduleTaskEntity = {
       id: randomUUID(),
@@ -99,33 +99,33 @@ export class ScheduleTasksService {
       predecessorIds
     };
 
-    tasks.push(newTask);
+    await this.repository.create(newTask);
 
     try {
-      const metrics = this.computeMetrics(projectId);
+      const updatedTasks = await this.repository.list(projectId);
+      const metrics = this.computeMetrics(updatedTasks);
       return {
-        tasks: this.cloneTasks(projectId),
+        tasks: updatedTasks,
         metrics
       };
     } catch (error) {
-      tasks.pop();
+      await this.repository.remove(projectId, newTask.id).catch(() => undefined);
       throw error;
     }
   }
 
-  update(
+  async update(
     projectId: string,
     taskId: string,
     payload: UpdateScheduleTaskDto
-  ): ScheduleTasksResponse {
-    const tasks = this.ensureProjectStore(projectId);
-    const index = tasks.findIndex(item => item.id === taskId);
+  ): Promise<ScheduleTasksResponse> {
+    const existingTasks = await this.repository.list(projectId);
+    const current = existingTasks.find(task => task.id === taskId);
 
-    if (index === -1) {
+    if (!current) {
       throw new NotFoundException(`Task ${taskId} not found`);
     }
 
-    const current = tasks[index];
     const updated: ScheduleTaskEntity = {
       ...current,
       ...payload,
@@ -133,78 +133,60 @@ export class ScheduleTasksService {
       predecessorIds: payload.predecessorIds ?? current.predecessorIds
     };
 
-    this.assertPredecessorsExist(projectId, updated.predecessorIds, taskId);
+    this.assertPredecessorsExist(existingTasks, updated.predecessorIds, taskId);
 
-    tasks[index] = updated;
+    await this.repository.update(updated);
 
     try {
-      const metrics = this.computeMetrics(projectId);
+      const updatedTasks = await this.repository.list(projectId);
+      const metrics = this.computeMetrics(updatedTasks);
       return {
-        tasks: this.cloneTasks(projectId),
+        tasks: updatedTasks,
         metrics
       };
     } catch (error) {
-      tasks[index] = current;
+      await this.repository.update(current).catch(() => undefined);
       throw error;
     }
   }
 
-  remove(projectId: string, taskId: string): ScheduleTasksResponse {
-    const tasks = this.ensureProjectStore(projectId);
-    const index = tasks.findIndex(item => item.id === taskId);
+  async remove(projectId: string, taskId: string): Promise<ScheduleTasksResponse> {
+    const existingTasks = await this.repository.list(projectId);
+    const current = existingTasks.find(task => task.id === taskId);
 
-    if (index === -1) {
+    if (!current) {
       throw new NotFoundException(`Task ${taskId} not found`);
     }
 
-    const [removed] = tasks.splice(index, 1);
-
-    for (const task of tasks) {
-      task.predecessorIds = task.predecessorIds.filter(id => id !== removed.id);
+    const dependents = existingTasks.filter(task => task.predecessorIds.includes(taskId));
+    for (const dependent of dependents) {
+      const updatedDependent: ScheduleTaskEntity = {
+        ...dependent,
+        predecessorIds: dependent.predecessorIds.filter(id => id !== taskId)
+      };
+      await this.repository.update(updatedDependent);
     }
 
-    const metrics = this.computeMetrics(projectId);
+    await this.repository.remove(projectId, taskId);
+
+    const updatedTasks = await this.repository.list(projectId);
+    const metrics = this.computeMetrics(updatedTasks);
     return {
-      tasks: this.cloneTasks(projectId),
+      tasks: updatedTasks,
       metrics
     };
   }
 
-  criticalPath(projectId: string): CriticalPathResult {
-    return this.computeMetrics(projectId);
-  }
-
-  private bootstrapDefaults() {
-    for (const task of DEFAULT_TASKS) {
-      const tasks = this.ensureProjectStore(task.projectId);
-      tasks.push({ ...task });
-    }
-  }
-
-  private ensureProjectStore(projectId: string): ScheduleTaskEntity[] {
-    if (!this.store.has(projectId)) {
-      this.store.set(projectId, []);
-    }
-    return this.store.get(projectId)!;
-  }
-
-  private getTasks(projectId: string): ScheduleTaskEntity[] {
-    const tasks = this.store.get(projectId) ?? [];
-    return [...tasks]
-      .map(task => ({ ...task, predecessorIds: [...task.predecessorIds] }))
-      .sort((a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime());
-  }
-
-  private cloneTasks(projectId: string): ScheduleTaskEntity[] {
-    return this.getTasks(projectId);
+  async criticalPath(projectId: string): Promise<CriticalPathResult> {
+    const tasks = await this.repository.list(projectId);
+    return this.computeMetrics(tasks);
   }
 
   private assertPredecessorsExist(
-    projectId: string,
+    tasks: ScheduleTaskEntity[],
     predecessorIds: string[],
     currentTaskId?: string
   ) {
-    const tasks = this.ensureProjectStore(projectId);
     const ids = new Set(tasks.map(task => task.id));
     if (currentTaskId) {
       ids.delete(currentTaskId);
@@ -217,8 +199,7 @@ export class ScheduleTasksService {
     }
   }
 
-  private computeMetrics(projectId: string): CriticalPathResult {
-    const tasks = this.ensureProjectStore(projectId);
+  private computeMetrics(tasks: ScheduleTaskEntity[]): CriticalPathResult {
     const inputs: ScheduleTaskInput[] = tasks.map(task => ({
       id: task.id,
       name: task.name,
@@ -235,4 +216,59 @@ export class ScheduleTasksService {
       throw error;
     }
   }
+}
+
+class InMemoryScheduleTasksRepository implements ScheduleTasksRepository {
+  private readonly store = new Map<string, ScheduleTaskEntity[]>();
+
+  constructor(seed: ScheduleTaskEntity[]) {
+    for (const task of seed) {
+      const projectTasks = this.getMutable(task.projectId);
+      projectTasks.push(cloneTask(task));
+    }
+  }
+
+  async list(projectId: string): Promise<ScheduleTaskEntity[]> {
+    return this.getMutable(projectId)
+      .map(cloneTask)
+      .sort((a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime());
+  }
+
+  async create(task: ScheduleTaskEntity): Promise<ScheduleTaskEntity> {
+    const tasks = this.getMutable(task.projectId);
+    tasks.push(cloneTask(task));
+    return cloneTask(task);
+  }
+
+  async update(task: ScheduleTaskEntity): Promise<ScheduleTaskEntity> {
+    const tasks = this.getMutable(task.projectId);
+    const index = tasks.findIndex(item => item.id === task.id);
+    if (index === -1) {
+      throw new Error(`Task ${task.id} not found`);
+    }
+    tasks[index] = cloneTask(task);
+    return cloneTask(task);
+  }
+
+  async remove(projectId: string, taskId: string): Promise<void> {
+    const tasks = this.getMutable(projectId);
+    const index = tasks.findIndex(item => item.id === taskId);
+    if (index !== -1) {
+      tasks.splice(index, 1);
+    }
+  }
+
+  private getMutable(projectId: string): ScheduleTaskEntity[] {
+    if (!this.store.has(projectId)) {
+      this.store.set(projectId, []);
+    }
+    return this.store.get(projectId)!;
+  }
+}
+
+function cloneTask(task: ScheduleTaskEntity): ScheduleTaskEntity {
+  return {
+    ...task,
+    predecessorIds: [...task.predecessorIds]
+  };
 }
