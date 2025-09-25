@@ -1,0 +1,79 @@
+services:
+  web:
+    build:
+      context: .
+      target: base
+    command: >-
+      sh -c "pnpm --filter @sistema/core build && pnpm --filter @sistema/ui build && pnpm --filter @sistema/web build && pnpm --filter @sistema/web start"
+    ports:
+      - "3002:3000"
+    environment:
+      NODE_ENV: production
+      NEXT_PUBLIC_API_URL: http://localhost:3001
+      NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: ${NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY}
+      CLERK_PUBLISHABLE_KEY: ${CLERK_PUBLISHABLE_KEY:-${NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY}}
+      CLERK_SECRET_KEY: ${CLERK_SECRET_KEY}
+      CLERK_FAKE_MODE: ${CLERK_FAKE_MODE:-false}
+    depends_on:
+      - api
+
+  api:
+    build:
+      context: .
+      target: base
+    command: >-
+      sh -c "pnpm --filter @sistema/core build && pnpm --filter @sistema/db build && pnpm --filter @sistema/ui build && pnpm --filter @sistema/db prisma:generate && pnpm --filter @sistema/db prisma:push && rm -rf apps/api/dist && pnpm --filter @sistema/api build && pnpm --filter @sistema/api start"
+    ports:
+      - "3001:3001"
+    environment:
+      NODE_ENV: production
+      PORT: 3001
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/sistema?schema=public
+      CLERK_FAKE_MODE: ${CLERK_FAKE_MODE:-false}
+      CLERK_SECRET_KEY: ${CLERK_SECRET_KEY}
+      NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: ${NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY}
+      NEXT_PUBLIC_API_URL: http://localhost:3001
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+    depends_on:
+      - postgres
+      - redis
+
+  worker:
+    build:
+      context: .
+      target: base
+    command: >-
+      sh -c "pnpm --filter @sistema/core build && pnpm --filter @sistema/db build && pnpm --filter @sistema/db prisma:generate && pnpm --filter @sistema/worker build && pnpm --filter @sistema/worker start"
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/sistema?schema=public
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      JOB_QUEUE: sistema-jobs
+    depends_on:
+      - postgres
+      - redis
+
+  postgres:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: sistema
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
+  redis:
+    image: redis:7
+    command: redis-server --save ""
+    volumes:
+      - redis_data:/data
+    ports:
+      - "6379:6379"
+
+volumes:
+  postgres_data:
+  redis_data:

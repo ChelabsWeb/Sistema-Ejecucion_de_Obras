@@ -1,7 +1,7 @@
 // Update the provider if you target another database. PostgreSQL by default.
 datasource db {
   provider = "postgresql"
-  url      = env("https://eogaiebigvoeiyphwoio.supabase.co")
+  url      = env("DATABASE_URL")
 }
 
 generator client {

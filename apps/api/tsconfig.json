@@ -11,6 +11,7 @@
     "experimentalDecorators": true,
     "strictNullChecks": true,
     "strictPropertyInitialization": false,
+    "noEmit": false,
     "types": ["node"]
   },
   "include": ["src/**/*.ts"],

@@ -1,7 +1,20 @@
 ﻿import { Injectable, UnauthorizedException } from "@nestjs/common";
 import type { AuthContext, UserRole } from "@sistema/core";
 import { ensureRole } from "@sistema/core";
-import { createClerkClient, type ClerkClient } from "@clerk/clerk-sdk-node";
+import { createClerkClient } from "@clerk/clerk-sdk-node";
+
+type ClerkClient = ReturnType<typeof createClerkClient>;
+type ClerkJwtPayload = Awaited<ReturnType<ClerkClient["verifyToken"]>> & {
+  org_id?: string;
+  orgId?: string;
+  org_role?: string;
+  orgs?: Array<{ id?: string; role?: string }>;
+  custom?: { role?: string; project_ids?: string[] } | null;
+  metadata?: { project_ids?: string[] } | null;
+  email?: string | null;
+  user_id?: string;
+  sub?: string;
+};
 
 @Injectable()
 export class ClerkAuthService {
@@ -30,25 +43,38 @@ export class ClerkAuthService {
     }
 
     try {
-      const { payload } = await this.client!.verifyToken(token);
-      const orgId = (payload.org_id ?? payload.orgId ?? payload.orgs?.[0]?.id) as string | undefined;
+      const payload = (await this.client!.verifyToken(token)) as ClerkJwtPayload;
+      const orgIdCandidate = payload.org_id ?? payload.orgId ?? payload.orgs?.[0]?.id;
+      const orgId = typeof orgIdCandidate === "string" ? orgIdCandidate : undefined;
       if (!orgId) {
         throw new UnauthorizedException("Organization context missing");
       }
 
       const roleClaim =
-        (payload.org_role as string | undefined) ??
-        (payload.orgs?.[0]?.role as string | undefined) ??
-        (payload.custom?.role as string | undefined) ??
+        (typeof payload.org_role === "string" ? payload.org_role : undefined) ??
+        (typeof payload.orgs?.[0]?.role === "string" ? payload.orgs?.[0]?.role : undefined) ??
+        (typeof payload.custom?.role === "string" ? payload.custom?.role : undefined) ??
         "VIEWER";
 
       const projectIdsClaim =
-        (payload.custom?.project_ids as string[] | undefined) ??
-        (payload.metadata?.project_ids as string[] | undefined);
+        (Array.isArray(payload.custom?.project_ids) ? payload.custom?.project_ids : undefined) ??
+        (Array.isArray(payload.metadata?.project_ids) ? payload.metadata?.project_ids : undefined);
+
+      const email = typeof payload.email === "string" ? payload.email : undefined;
+      const userId =
+        typeof payload.sub === "string"
+          ? payload.sub
+          : typeof payload.user_id === "string"
+            ? payload.user_id
+            : undefined;
+
+      if (!userId) {
+        throw new UnauthorizedException("User identifier missing");
+      }
 
       return {
-        userId: payload.sub ?? payload.user_id,
-        email: payload.email,
+        userId,
+        email,
         orgId,
         role: ensureRole(roleClaim),
         projectIds: projectIdsClaim

@@ -2,7 +2,7 @@
     "name":  "@sistema/db",
     "version":  "0.0.1",
     "private":  false,
-    "main":  "dist/index.cjs",
+    "main":  "dist/index.js",
     "module":  "dist/index.mjs",
     "types":  "dist/index.d.ts",
     "scripts":  {

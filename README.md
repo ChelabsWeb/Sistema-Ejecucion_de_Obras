@@ -29,6 +29,26 @@ pnpm dev
 
 Turborepo lanza los comandos `dev` de cada app en paralelo. Clerk protege `/dashboard` y los endpoints `/projects`. Si `SUPABASE_URL` y `SUPABASE_SERVICE_ROLE_KEY` estan definidos, la API persiste tareas en Supabase; de lo contrario usa el store in-memory con datos seed.
 
+### Arranque con Docker (modo producción local)
+
+```bash
+docker compose build
+docker compose up -d
+```
+
+Servicios expuestos:
+
+- Web (Next.js): http://localhost:3002
+- API (NestJS): http://localhost:3001
+- Postgres: localhost:5432 (`postgres`/`postgres`/`sistema`)
+- Redis: localhost:6379
+
+El archivo `docker-compose.yml` inicia los builds necesarios de cada app (`pnpm --filter ... build`) y aplica `prisma db push` antes de levantar la API. Puedes ajustar las variables (`NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`, `CLERK_FAKE_MODE`, credenciales de DB, etc.) desde tu `.env` o pasando overrides al ejecutar `docker compose`. Para detener y limpiar datos:
+
+```bash
+docker compose down -v
+```
+
 ### Scripts principales
 
 - `pnpm dev` - Arranca web, api y worker en desarrollo.

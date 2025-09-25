@@ -27,7 +27,7 @@ export function createSupabaseScheduleTasksRepository(): ScheduleTasksRepository
   return {
     async list(projectId) {
       const { data, error } = await client
-        .from<ScheduleTaskRow>(TABLE)
+        .from(TABLE)
         .select("*")
         .eq("project_id", projectId)
         .order("start_date", { ascending: true });
@@ -41,7 +41,7 @@ export function createSupabaseScheduleTasksRepository(): ScheduleTasksRepository
     async create(task) {
       const row = mapEntityToRow(task);
       const { data, error } = await client
-        .from<ScheduleTaskRow>(TABLE)
+        .from(TABLE)
         .insert([row])
         .select()
         .single();
@@ -55,7 +55,7 @@ export function createSupabaseScheduleTasksRepository(): ScheduleTasksRepository
     async update(task) {
       const row = mapEntityToRow(task);
       const { data, error } = await client
-        .from<ScheduleTaskRow>(TABLE)
+        .from(TABLE)
         .update({
           name: row.name,
           start_date: row.start_date,

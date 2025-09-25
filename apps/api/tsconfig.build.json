@@ -3,7 +3,15 @@
   "compilerOptions": {
     "declaration": true,
     "declarationMap": true,
-    "sourceMap": true
+    "sourceMap": true,
+    "paths": {
+      "@sistema/core": ["../../packages/core/dist/index"],
+      "@sistema/core/*": ["../../packages/core/dist/*"],
+      "@sistema/db": ["../../packages/db/dist/index"],
+      "@sistema/db/*": ["../../packages/db/dist/*"],
+      "@sistema/ui": ["../../packages/ui/dist/index"],
+      "@sistema/ui/*": ["../../packages/ui/dist/*"]
+    }
   },
   "exclude": ["node_modules", "test", "dist", "**/*.spec.ts"]
 }

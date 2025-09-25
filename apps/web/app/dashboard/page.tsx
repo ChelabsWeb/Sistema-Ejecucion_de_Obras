@@ -1,5 +1,5 @@
 ﻿import Link from "next/link";
-import { auth, currentUser } from "@clerk/nextjs";
+import { auth, currentUser } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 import { Button, Card } from "@sistema/ui";
 import { formatGreeting } from "@sistema/core";

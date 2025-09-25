@@ -1,5 +1,5 @@
 ﻿import "dotenv/config";
-import { Queue, Worker, QueueScheduler, JobsOptions } from "bullmq";
+import { Queue, Worker, JobsOptions } from "bullmq";
 import { formatGreeting } from "@sistema/core";
 import { ensurePrismaConnection, closePrismaConnection } from "@sistema/db";
 
@@ -12,7 +12,6 @@ const connection = {
 
 const queueName = process.env.JOB_QUEUE ?? "sistema-jobs";
 const jobsQueue = new Queue(queueName, connection);
-const scheduler = new QueueScheduler(queueName, connection);
 
 const defaultJobOptions: JobsOptions = {
   removeOnComplete: true,
@@ -60,7 +59,7 @@ worker.on("failed", (job, err) => {
 });
 
 async function bootstrap() {
-  await scheduler.waitUntilReady();
+  await jobsQueue.waitUntilReady();
   await seedJob();
   // eslint-disable-next-line no-console
   console.log("Queue ready and sample job scheduled.");
